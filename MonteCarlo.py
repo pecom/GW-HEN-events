@@ -4,26 +4,25 @@ import scipy as sp
 from scipy import stats
 import healpy as hp
 import matplotlib.pyplot as plt
-from tqdm import tqdm_notebook as tqdm
+from tqdm import tqdm
 import csv
 
-#%matplotlib inline
-#%config InlineBackend.figure_format='retina'
-
 # Constants and other setup variables. Event rates are events/year. Spherical points should be (theta, phi)
-low_energy_rate = 500
+low_energy_rate = 50
 high_energy_rate = 70
 low_energy_resolution = (.3*np.pi/180, .3*np.pi/180)
 high_energy_resolution = (.3*np.pi/180, .3*np.pi/180)
 lisa_resolution = (1*np.pi/180, 1*np.pi/180)
 NSIDE = 128
 Npix = hp.nside2npix(NSIDE)
+make_plots = False
+make_arrays = False
 
 # Monte Carlo values
 time_vals = [10, 1000, 10000, 100000, 1000000]
 emri_array = [1, 100, 1000, 4000]
 mbh_array = [1,2,3]
-position_array = [1,2,3,4,5]
+position_array = [1]
 
 # Sample MC values
 #time_vals = [500000]
@@ -34,7 +33,7 @@ position_array = [1,2,3,4,5]
 time_diff = 100000
 mbh_rate = 3
 emri_rate = 50
-position_factor = 2
+position_factor = 1
 
 def add_time():
     time = np.random.randint(86400*365*1000)
@@ -162,8 +161,9 @@ def mc_big_hammer(n=100):
                         total = np.sum(monte_data)
                         lval.append(total)
                         monte_name = 'monte_big_time%i_emri%i_mbh%i_pos%i_%i_' % (i, j, k, l, m)
-                        np.save('output/' + monte_name, monte_data)
-                        if total > 0:
+                        if make_arrays:
+                            np.save('output/' + monte_name, monte_data)
+                        if total > 0 and make_plots:
                             big_map = np.zeros(Npix)
                             for map_index in range(len(points)):
                                 temp_map = np.zeros(Npix)
@@ -185,26 +185,28 @@ def mc_big_hammer(n=100):
                             plt.savefig('maps/'+monte_name+'mollview')
                             plt.close()
                         with open('output/monte_run.csv', 'a') as csvfile:
-                                c = csv.writer(csvfile)
-                                data = [m,i,l,j,k,total]
-                                c.writerow(data)
+                            c = csv.writer(csvfile)
+                            data = [m,i,l,j,k,total]
+                            c.writerow(data)
                     run_total = np.sum(lval)
                     with open('output/total_run.csv', 'a') as csvfile:
                         d = csv.writer(csvfile)
                         data = [n,i,l,j,k,run_total]
                         d.writerow(data)
-    
-                    array_name = 'lval_big_time%i_emri%i_mbh%i_pos%i_%i_' % (i, j, k, l, n)
-                    np.save('output/' + array_name, lval)
-                    plt.hist(lval);
-                    plt.savefig('images/' + array_name)
-                    plt.close()
+
+                    if make_arrays:
+                        array_name = 'lval_big_time%i_emri%i_mbh%i_pos%i_%i_' % (i, j, k, l, n)
+                        np.save('output/' + array_name, lval)
+                    if make_plots:
+                        plt.hist(lval);
+                        plt.savefig('images/' + array_name)
+                        plt.close()
 
 def mc(n=100):
     lval = []
-    for i in tqdm(range(n)):
+    for i in range(n):
         lval.append(np.sum(monte_carlo_run()))
     return lval
 
 n = 100
-m = mc_big_hammer(n)
+mc_big_hammer(n)
